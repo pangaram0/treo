@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Discord Max Speed - v7.0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#00ffcc;font-family:'Consolas',monospace;padding:20px}
+.container{max-width:950px;margin:0 auto;background:#0f1a2e;padding:25px;border-radius:12px;border:2px solid #ff4400}
+h2{color:#ff4400;text-align:center;font-size:28px}
+label{display:block;margin:8px 0 3px;font-size:13px;color:#88ddff}
+input,textarea{width:100%;padding:8px;background:#0a0a18;border:1px solid #ff4400;border-radius:6px;color:#00ffcc;font-family:inherit;font-size:13px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>div{flex:1;min-width:140px}
+.btn-group{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap}
+.btn{padding:12px 20px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;flex:1;min-width:90px;font-size:14px}
+.btn-start{background:#00cc88;color:#000}
+.btn-start:hover{background:#00ff99}
+.btn-start:disabled{opacity:0.4}
+.btn-stop{background:#ff3355;color:#fff}
+.btn-stop:hover{background:#ff0044}
+.btn-stop:disabled{opacity:0.4}
+.btn-raid{background:#ff8800;color:#000}
+.btn-raid:hover{background:#ffaa33}
+.btn-raid:disabled{opacity:0.4}
+#console{height:200px;background:#050510;border:1px solid #ff4400;border-radius:6px;padding:10px;color:#88ddff;font-size:11px;overflow-y:auto;margin-top:8px}
+.status{display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;margin-top:5px}
+.status-idle{background:#333;color:#aaa}
+.status-running{background:#00cc88;color:#000;animation:pulse 0.3s infinite}
+.status-raid{background:#ff4400;color:#fff;animation:pulse 0.15s infinite}
+@keyframes pulse{0%{opacity:1}50%{opacity:0.3}100%{opacity:1}}
+.raid-panel{background:#0a0a18;padding:15px;border-radius:8px;margin:12px 0;border:2px solid #ff8800;display:none}
+.raid-panel.active{display:block}
+.stats{display:flex;gap:15px;flex-wrap:wrap;font-size:13px;margin:5px 0}
+.stats span{background:#0a0a18;padding:3px 12px;border-radius:4px;border:1px solid #ff440044}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>⚡ DISCORD MAX SPEED v7.0</h2>
+
+<label>🔑 Token</label>
+<input id="token" type="password" placeholder="Token...">
+
+<div class="row">
+    <div><label>📌 Channel ID</label><input id="channel" placeholder="ID kênh"></div>
+    <div><label>👤 User ID</label><input id="user" placeholder="ID user (DM)"></div>
+</div>
+
+<label>⏱️ Delay (ms) - 0 = max speed</label>
+<input id="delay" type="number" value="0" min="0">
+
+<label>📝 Nội dung</label>
+<textarea id="message" rows="2">@everyone 🔥 MAX SPEED!</textarea>
+
+<div class="btn-group">
+    <button class="btn btn-start" id="startBtn" onclick="startSpam()">▶ SPAM</button>
+    <button class="btn btn-stop" id="stopBtn" onclick="stopSpam()" disabled>⏹ DỪNG</button>
+    <button class="btn btn-raid" id="raidToggleBtn" onclick="toggleRaid()">⚡ RAID</button>
+</div>
+
+<div style="display:flex;justify-content:space-between;flex-wrap:wrap">
+    <span class="status status-idle" id="status">● IDLE</span>
+    <span>📨 <span id="count">0</span></span>
+    <span style="color:#ff8800;">⚡ <span id="speedDisplay">0</span> msg/s</span>
+</div>
+
+<div class="raid-panel" id="raidPanel">
+    <h3 style="color:#ff8800;">⚡ RAID - ALL CHANNELS</h3>
+    <label>🆔 Server ID</label>
+    <input id="serverId" placeholder="Server ID...">
+    <div class="row">
+        <div><label>⏱️ Delay</label><input id="raidDelay" type="number" value="0" min="0"></div>
+        <div><label>🔑 Token (tùy chọn)</label><input id="raidToken" placeholder="Để trống dùng token chính"></div>
+    </div>
+    <label>📝 Nội dung RAID</label>
+    <textarea id="raidMessage" rows="2">@everyone 🔥 MASS RAID!</textarea>
+    <div class="btn-group">
+        <button class="btn btn-raid" id="raidStartBtn" onclick="startRaid()">🔥 RAID</button>
+        <button class="btn btn-stop" id="raidStopBtn" onclick="stopRaid()" disabled>⏹ DỪNG</button>
+    </div>
+</div>
+
+<div class="stats">
+    <span>💾 <span id="savedData">Chưa lưu</span></span>
+</div>
+
+<label>📋 Console</label>
+<div id="console">[SYSTEM] MAX SPEED v7.0 READY</div>
+</div>
+
+<script>
+// ============================================================
+// PALOFSC - DISCORD MAX SPEED v7.0 - NO LIMIT
+// ============================================================
+
+let isSpamming = false, spamInterval = null, msgCount = 0;
+let isRaid = false, raidCount = 0, raidSkipped = 0, raidWorkers = [];
+let speedSamples = [];
+const C = document.getElementById('console');
+const statusEl = document.getElementById('status');
+const countEl = document.getElementById('count');
+const speedEl = document.getElementById('speedDisplay');
+
+function log(m, t='INFO') {
+    const time = new Date().toLocaleTimeString();
+    const col = {'INFO':'#88ddff','SUCCESS':'#00ff88','ERROR':'#ff4466','WARN':'#ffaa44','RAID':'#ff8800'};
+    C.innerHTML += `<span style="color:#888">[${time}]</span> <span style="color:${col[t]||'#88ddff'}">[${t}]</span> ${m}\n`;
+    C.scrollTop = C.scrollHeight;
+}
+
+function setStatus(s, l) {
+    statusEl.className = 'status status-' + s;
+    statusEl.textContent = l || '● ' + s.toUpperCase();
+}
+
+function updateSpeed(c) {
+    const now = Date.now();
+    speedSamples.push({time: now, count: c || msgCount});
+    speedSamples = speedSamples.filter(s => now - s.time < 1000);
+    if (speedSamples.length > 1) {
+        const f = speedSamples[0], l = speedSamples[speedSamples.length-1];
+        const dt = (l.time - f.time) / 1000;
+        if (dt > 0) speedEl.textContent = Math.round((l.count - f.count) / dt);
+    }
+}
+
+// ============================================================
+// SEND - TỐI ƯU HÓA CỰC NHANH
+// ============================================================
+async function sendFast(token, channelId, content) {
+    try {
+        const r = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {'Authorization': token, 'Content-Type': 'application/json'},
+            body: JSON.stringify({content})
+        });
+        if (r.status === 200 || r.status === 201) return {ok: true};
+        if (r.status === 429) {
+            const d = await r.json();
+            return {ok: false, rate: true, retry: (d.retry_after || 0.5) * 1000};
+        }
+        if (r.status === 403 || r.status === 400) return {ok: false, skip: true};
+        return {ok: false, err: r.status};
+    } catch(e) { return {ok: false, err: e.message}; }
+}
+
+async function sendDMFast(token, userId, content) {
+    try {
+        const r = await fetch('https://discord.com/api/v9/users/@me/channels', {
+            method: 'POST',
+            headers: {'Authorization': token, 'Content-Type': 'application/json'},
+            body: JSON.stringify({recipient_id: userId})
+        });
+        if (!r.ok) return {ok: false, err: r.status};
+        const d = await r.json();
+        return await sendFast(token, d.id, content);
+    } catch(e) { return {ok: false, err: e.message}; }
+}
+
+// ============================================================
+// SPAM - SIÊU NHANH
+// ============================================================
+async function spamLoop() {
+    const token = document.getElementById('token').value.trim();
+    const channel = document.getElementById('channel').value.trim();
+    const user = document.getElementById('user').value.trim();
+    const content = document.getElementById('message').value || 'Spam!';
+    if (!token) { log('❌ Token trống', 'ERROR'); return; }
+    if (!channel && !user) { log('❌ Cần Channel hoặc User ID', 'ERROR'); return; }
+    
+    // GỬI 10 TIN CÙNG LÚC - KHÔNG CHỜ
+    const promises = [];
+    for (let i = 0; i < 5; i++) {
+        if (!isSpamming) break;
+        const p = user ? sendDMFast(token, user, content) : sendFast(token, channel, content);
+        promises.push(p);
+    }
+    
+    const results = await Promise.all(promises);
+    for (const r of results) {
+        if (r.ok) { msgCount++; countEl.textContent = msgCount; if (msgCount % 10 === 0) updateSpeed(); }
+        else if (r.skip) { log('⛔ Bị chặn', 'WARN'); stopSpam(); return; }
+        else if (r.rate) { await new Promise(r2 => setTimeout(r2, r.retry)); }
+        else if (r.err === 401) { log('🔑 Token lỗi', 'ERROR'); stopSpam(); return; }
+    }
+}
+
+function startSpam() {
+    if (isSpamming) return;
+    if (isRaid) { log('⚠️ Đang RAID', 'WARN'); return; }
+    const token = document.getElementById('token').value.trim();
+    if (!token) { log('❌ Nhập token', 'ERROR'); return; }
+    isSpamming = true;
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+    setStatus('running', '● SPAMMING');
+    log('▶️ START SPAM - MAX SPEED', 'SUCCESS');
+    const delay = parseInt(document.getElementById('delay').value) || 0;
+    
+    async function worker() {
+        while (isSpamming) {
+            await spamLoop();
+            if (delay > 0) await new Promise(r => setTimeout(r, delay));
+        }
+    }
+    worker();
+    spamInterval = setInterval(() => {
+        if (!isSpamming) { clearInterval(spamInterval); spamInterval = null; }
+    }, 50);
+}
+
+function stopSpam() {
+    if (!isSpamming) return;
+    isSpamming = false;
+    if (spamInterval) { clearInterval(spamInterval); spamInterval = null; }
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+    setStatus('idle', '● IDLE');
+    log(`⏹️ STOP. Tổng: ${msgCount}`, 'WARN');
+}
+
+// ============================================================
+// RAID - SIÊU NHANH ĐỒNG THỜI
+// ============================================================
+async function getChannels(token, serverId) {
+    try {
+        const r = await fetch(`https://discord.com/api/v9/guilds/${serverId}/channels`, {
+            headers: {'Authorization': token}
+        });
+        if (!r.ok) return {ok: false, err: await r.text()};
+        const d = await r.json();
+        return {ok: true, channels: d.filter(c => c.type === 0)};
+    } catch(e) { return {ok: false, err: e.message}; }
+}
+
+async function startRaid() {
+    if (isRaid) return;
+    if (isSpamming) { log('⚠️ Đang SPAM', 'WARN'); return; }
+    
+    const token = document.getElementById('raidToken').value.trim() || document.getElementById('token').value.trim();
+    const serverId = document.getElementById('serverId').value.trim();
+    const content = document.getElementById('raidMessage').value || 'RAID!';
+    const delay = parseInt(document.getElementById('raidDelay').value) || 0;
+    
+    if (!token) { log('❌ Token trống', 'ERROR'); return; }
+    if (!serverId) { log('❌ Server ID trống', 'ERROR'); return; }
+    
+    isRaid = true;
+    raidCount = 0; raidSkipped = 0;
+    document.getElementById('raidStartBtn').disabled = true;
+    document.getElementById('raidStopBtn').disabled = false;
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('raidToggleBtn').disabled = true;
+    setStatus('raid', '⚡ RAIDING');
+    log('🔥 START RAID - MAX SPEED', 'RAID');
+    
+    const result = await getChannels(token, serverId);
+    if (!result.ok) { log(`❌ ${result.err}`, 'ERROR'); stopRaid(); return; }
+    
+    const channels = result.channels;
+    if (channels.length === 0) { log('❌ Không có kênh', 'ERROR'); stopRaid(); return; }
+    log(`📡 ${channels.length} kênh`, 'INFO');
+    
+    // SỬ DỤNG TẤT CẢ KÊNH - KHÔNG GIỚI HẠN LUỒNG
+    let workerCount = 0;
+    for (const channel of channels) {
+        if (!isRaid) break;
+        workerCount++;
+        
+        (async (ch) => {
+            while (isRaid) {
+                const r = await sendFast(token, ch.id, content);
+                if (r.ok) {
+                    raidCount++;
+                    if (raidCount % 5 === 0) { countEl.textContent = raidCount; updateSpeed(raidCount); }
+                } else if (r.skip) {
+                    raidSkipped++;
+                    break;
+                } else if (r.rate) {
+                    await new Promise(r2 => setTimeout(r2, r.retry));
+                    continue;
+                } else {
+                    if (r.err === 401) { log('🔑 Token lỗi', 'ERROR'); stopRaid(); return; }
+                    break;
+                }
+                if (delay > 0) await new Promise(r2 => setTimeout(r2, delay));
+            }
+        })(channel);
+        
+        // Khởi chạy cực nhanh
+        if (workerCount % 20 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+    
+    log(`✅ ${channels.length} kênh đang RAID song song`, 'SUCCESS');
+}
+
+function stopRaid() {
+    if (!isRaid) return;
+    isRaid = false;
+    document.getElementById('raidStartBtn').disabled = false;
+    document.getElementById('raidStopBtn').disabled = true;
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('raidToggleBtn').disabled = false;
+    setStatus('idle', '● IDLE');
+    log(`⏹️ STOP RAID. Gửi: ${raidCount}, Bỏ qua: ${raidSkipped}`, 'WARN');
+}
+
+function toggleRaid() {
+    document.getElementById('raidPanel').classList.toggle('active');
+}
+
+// ============================================================
+// CHECK TOKEN
+// ============================================================
+async function checkToken() {
+    const token = document.getElementById('token').value.trim();
+    if (!token) return;
+    try {
+        const r = await fetch('https://discord.com/api/v9/users/@me', {
+            headers: {'Authorization': token}
+        });
+        if (r.ok) {
+            const d = await r.json();
+            log(`✅ ${d.username}#${d.discriminator}`, 'SUCCESS');
+        } else log(`❌ Token lỗi ${r.status}`, 'ERROR');
+    } catch(e) { log(`❌ ${e.message}`, 'ERROR'); }
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
+document.getElementById('token').addEventListener('change', checkToken);
+document.getElementById('token').addEventListener('paste', () => setTimeout(checkToken, 500));
+
+// AUTO UPDATE SPEED
+setInterval(() => {
+    if (isSpamming || isRaid) updateSpeed();
+}, 100);
+
+// ============================================================
+// INIT
+// ============================================================
+log('🔥 MAX SPEED v7.0 - KHÔNG GIỚI HẠN TỐC ĐỘ', 'RAID');
+log('⚡ Gửi 5 tin cùng lúc mỗi lần, không chờ response', 'INFO');
+log('⚡ RAID gửi vào tất cả kênh song song không giới hạn', 'INFO');
+setTimeout(checkToken, 1000);
+console.log('[PALOFSC] Max Speed v7.0 loaded.');
+</script>
+</body>
+</html>
