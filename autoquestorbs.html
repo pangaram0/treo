@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discord Quest Auto - Full Auto</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0b0f;color:#c8cad0;font-family:'Segoe UI',system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{max-width:540px;width:100%;background:#14151a;border-radius:20px;padding:32px;border:1px solid rgba(255,255,255,0.05);box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.logo{text-align:center;font-size:48px;margin-bottom:4px}
+.title{text-align:center;font-size:26px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+.title span{background:linear-gradient(135deg,#5865F2,#EB459E);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{text-align:center;font-size:14px;color:#6d7080;margin-top:2px;margin-bottom:20px}
+.warning{background:rgba(237,66,69,0.12);border:1px solid rgba(237,66,69,0.25);border-radius:12px;padding:14px 16px;margin-bottom:22px}
+.warning-title{color:#ed4245;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.warning-text{font-size:13px;color:#a8abb3;margin-top:4px;line-height:1.5}
+label{display:block;font-size:13px;color:#b5b8c0;margin-bottom:6px;font-weight:500}
+input{width:100%;padding:12px 14px;background:#0e0f13;border:1px solid #2b2d36;border-radius:10px;color:#fff;font-size:14px;outline:none;transition:border .2s;font-family:inherit}
+input:focus{border-color:#5865F2}
+input::placeholder{color:#4a4d5a}
+.row{display:flex;gap:12px;margin-top:14px}
+.row>div{flex:1}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:16px;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,#5865F2,#4752C4);color:#fff}
+.btn-primary:hover{transform:scale(1.02);box-shadow:0 0 30px rgba(88,101,242,0.25)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-danger{background:#ed4245;color:#fff}
+.btn-danger:hover{background:#c03537}
+.btn-success{background:#57f287;color:#000}
+.btn-success:hover{background:#45d97a}
+.btn-group{display:flex;gap:12px;margin-top:16px}
+.btn-group .btn{flex:1;margin-top:0}
+.log-box{background:#0e0f13;border-radius:10px;padding:12px 14px;margin-top:16px;font-size:13px;max-height:220px;overflow-y:auto;font-family:'Consolas',monospace;white-space:pre-wrap;word-wrap:break-word;border:1px solid #2b2d36;color:#b5b8c0;line-height:1.6}
+.log-box::-webkit-scrollbar{width:5px}
+.log-box::-webkit-scrollbar-track{background:#0e0f13}
+.log-box::-webkit-scrollbar-thumb{background:#2b2d36;border-radius:10px}
+.log-success{color:#57f287}
+.log-error{color:#ed4245}
+.log-info{color:#5865F2}
+.log-warn{color:#fee75c}
+.log-quest{color:#EB459E}
+.status-bar{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:8px 12px;background:#0e0f13;border-radius:8px;font-size:13px}
+.status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.status-dot.idle{background:#4a4d5a}
+.status-dot.running{background:#57f287;animation:pulse 1s infinite}
+.status-dot.error{background:#ed4245}
+.status-dot.quest{background:#EB459E;animation:pulse 0.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-on{background:#57f287;color:#000}
+.badge-off{background:#4a4d5a;color:#fff}
+.footer{text-align:center;margin-top:18px;font-size:11px;color:#4a4d5a}
+.hidden{display:none!important}
+.count-badge{background:#2b2d36;padding:4px 12px;border-radius:20px;font-size:12px;color:#b5b8c0}
+.quest-stats{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#6d7080;margin-top:8px}
+.quest-stats span{background:#0e0f13;padding:3px 10px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="logo">◆</div>
+<div class="title">Auto<span>Quest</span></div>
+<div class="sub">Discord Quest Auto — Tự động nhận & hoàn thành</div>
+
+<div class="warning">
+<div class="warning-title">⚠️ Cảnh báo vi phạm Điều khoản Discord</div>
+<div class="warning-text">Công cụ này vi phạm Điều khoản Dịch vụ của Discord. Tài khoản của bạn có thể bị đình chỉ. Cân nhắc khi sử dụng.</div>
+</div>
+
+<label>🔑 Discord Token</label>
+<input type="password" id="token" placeholder="Nhập token của bạn...">
+
+<div class="row">
+<div><label>⏱️ Delay (ms)</label><input type="number" id="delay" value="3000" min="500" step="500"></div>
+<div><label>🔄 Số lần</label><input type="number" id="count" value="999" min="1" max="9999"></div>
+</div>
+
+<div class="btn-group">
+<button class="btn btn-primary" id="startBtn">▶ BẮT ĐẦU AUTO</button>
+<button class="btn btn-danger hidden" id="stopBtn">⏹ DỪNG</button>
+</div>
+
+<div class="status-bar">
+<span><span class="status-dot idle" id="statusDot"></span><span id="statusText">Idle</span></span>
+<span class="count-badge">Đã xử lý: <span id="processedCount">0</span></span>
+</div>
+
+<div class="quest-stats">
+<span>📋 Quest: <span id="questTotal">0</span></span>
+<span>✅ Đã nhận: <span id="questAccepted">0</span></span>
+<span>🎯 Đã claim: <span id="questClaimed">0</span></span>
+</div>
+
+<div class="log-box" id="logBox">[SYSTEM] Đã sẵn sàng. Nhập token và bắt đầu.</div>
+
+<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;font-size:12px;color:#4a4d5a">
+<span>⚡ Auto Accept</span><span>🎯 Auto Complete</span><span>🔄 24/7</span><span>🔒 Bảo mật</span>
+</div>
+<div class="footer">Made with ❤️ • Token theo phiên đăng nhập</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+var tokenInput = document.getElementById('token');
+var delayInput = document.getElementById('delay');
+var countInput = document.getElementById('count');
+var startBtn = document.getElementById('startBtn');
+var stopBtn = document.getElementById('stopBtn');
+var logBox = document.getElementById('logBox');
+var statusDot = document.getElementById('statusDot');
+var statusText = document.getElementById('statusText');
+var processedCount = document.getElementById('processedCount');
+var questTotal = document.getElementById('questTotal');
+var questAccepted = document.getElementById('questAccepted');
+var questClaimed = document.getElementById('questClaimed');
+
+var isRunning = false;
+var shouldStop = false;
+var timerId = null;
+var count = 0;
+var stats = { total: 0, accepted: 0, claimed: 0 };
+
+function log(msg, type) {
+var cls = type || 'info';
+var time = new Date().toLocaleTimeString();
+var colorMap = { success:'log-success', error:'log-error', info:'log-info', warn:'log-warn', quest:'log-quest' };
+var color = colorMap[cls] || 'log-info';
+logBox.innerHTML += '<div><span style="color:#4a4d5a">['+time+']</span> <span class="'+color+'">'+msg+'</span></div>';
+logBox.scrollTop = logBox.scrollHeight;
+}
+
+function setStatus(state, text) {
+statusDot.className = 'status-dot ' + state;
+statusText.textContent = text || state;
+}
+
+function updateCount(val) { processedCount.textContent = val; }
+function updateStats() {
+questTotal.textContent = stats.total;
+questAccepted.textContent = stats.accepted;
+questClaimed.textContent = stats.claimed;
+}
+
+async function checkToken(token) {
+try {
+var resp = await fetch('https://discord.com/api/v9/users/@me', {
+headers: { 'Authorization': token }
+});
+if (resp.ok) {
+var data = await resp.json();
+return { valid: true, username: data.username+'#'+data.discriminator, id: data.id };
+}
+return { valid: false, error: resp.status };
+} catch(e) { return { valid: false, error: e.message }; }
+}
+
+async function getQuests(token) {
+try {
+var resp = await fetch('https://discord.com/api/v9/users/@me/quests', {
+headers: { 'Authorization': token }
+});
+if (resp.ok) {
+var data = await resp.json();
+return { success: true, quests: data };
+}
+return { success: false, error: resp.status };
+} catch(e) { return { success: false, error: e.message }; }
+}
+
+async function acceptQuest(token, questId) {
+try {
+var resp = await fetch('https://discord.com/api/v9/users/@me/quests/'+questId+'/accept', {
+method: 'POST',
+headers: { 'Authorization': token, 'Content-Type': 'application/json' }
+});
+if (resp.ok) return { success: true };
+if (resp.status === 400) return { success: false, error: 'already_accepted' };
+return { success: false, error: resp.status };
+} catch(e) { return { success: false, error: e.message }; }
+}
+
+async function claimQuest(token, questId) {
+try {
+var resp = await fetch('https://discord.com/api/v9/users/@me/quests/'+questId+'/claim', {
+method: 'POST',
+headers: { 'Authorization': token, 'Content-Type': 'application/json' }
+});
+if (resp.ok) return { success: true };
+if (resp.status === 400) return { success: false, error: 'already_claimed' };
+return { success: false, error: resp.status };
+} catch(e) { return { success: false, error: e.message }; }
+}
+
+async function getQuestProgress(token, questId) {
+try {
+var resp = await fetch('https://discord.com/api/v9/users/@me/quests/'+questId+'/progress', {
+headers: { 'Authorization': token }
+});
+if (resp.ok) {
+var data = await resp.json();
+return { success: true, progress: data };
+}
+return { success: false, error: resp.status };
+} catch(e) { return { success: false, error: e.message }; }
+}
+
+// Mô phỏng hoàn thành quest - Discord tự động cập nhật progress
+// Khi user thực hiện hành động (chơi game, xem stream...)
+// Tool này sẽ giả lập các hành động để quest tự hoàn thành
+async function simulateQuestProgress(token, questId, questType) {
+try {
+// Các loại quest: GAME_PLAY, STREAM_WATCH, INVITE, BOOST, etc.
+// Mô phỏng hành động để Discord cập nhật progress
+var actions = [
+{ type: 'game_play', data: { game: 'discord', duration: 60 } },
+{ type: 'stream_watch', data: { channel: 'discord', duration: 60 } },
+{ type: 'invite', data: { count: 1 } },
+{ type: 'boost', data: { server: 'discord' } }
+];
+var action = actions[Math.floor(Math.random() * actions.length)];
+
+// Gửi activity update để mô phỏng hành động
+var activity = {
+activities: [{
+name: action.type === 'game_play' ? 'Discord' : 'Stream',
+type: action.type === 'game_play' ? 0 : 1,
+state: 'Playing',
+details: 'Auto Quest',
+timestamps: { start: Date.now() }
+}]
+};
+
+var resp = await fetch('https://discord.com/api/v9/users/@me/activities', {
+method: 'POST',
+headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+body: JSON.stringify(activity)
+});
+
+if (resp.ok) {
+return { success: true };
+}
+return { success: false, error: resp.status };
+} catch(e) { return { success: false, error: e.message }; }
+}
+
+async function processQuests(token) {
+var questsResult = await getQuests(token);
+if (!questsResult.success) {
+log('❌ Lỗi lấy quest: '+questsResult.error, 'error');
+return false;
+}
+
+var quests = questsResult.quests;
+if (!quests || quests.length === 0) {
+log('📭 Không có quest nào.', 'warn');
+return true;
+}
+
+stats.total = quests.length;
+updateStats();
+log('📋 Tìm thấy '+quests.length+' quest.', 'info');
+
+for (var i = 0; i < quests.length; i++) {
+if (shouldStop) break;
+
+var q = quests[i];
+var questId = q.id || q.quest_id;
+var questName = q.name || q.title || 'Quest #'+(i+1);
+var questType = q.type || q.quest_type || 'unknown';
+
+// Lấy progress
+var progressResult = await getQuestProgress(token, questId);
+if (!progressResult.success) {
+log('⚠️ ['+questName+'] Không lấy được progress.', 'warn');
+continue;
+}
+
+var prog = progressResult.progress;
+var completed = prog && prog.completed === true;
+var claimed = prog && prog.claimed === true;
+
+if (claimed) {
+log('✅ ['+questName+'] Đã claim rồi.', 'success');
+continue;
+}
+
+if (completed) {
+log('🎯 ['+questName+'] Đã hoàn thành, đang claim...', 'quest');
+var claimResult = await claimQuest(token, questId);
+if (claimResult.success) {
+stats.claimed++;
+updateStats();
+log('✅ ['+questName+'] Claim thành công!', 'success');
+} else if (claimResult.error === 'already_claimed') {
+log('ℹ️ ['+questName+'] Đã claim từ trước.', 'warn');
+} else {
+log('❌ ['+questName+'] Claim thất bại: '+claimResult.error, 'error');
+}
+continue;
+}
+
+// Nếu chưa hoàn thành -> nhận quest + mô phỏng hành động
+log('📌 ['+questName+'] Đang nhận quest...', 'info');
+var acceptResult = await acceptQuest(token, questId);
+if (acceptResult.success) {
+stats.accepted++;
+updateStats();
+log('✅ ['+questName+'] Nhận quest thành công!', 'success');
+
+// Mô phỏng hành động để hoàn thành quest
+log('🔄 ['+questName+'] Đang mô phỏng hành động...', 'quest');
+var simResult = await simulateQuestProgress(token, questId, questType);
+if (simResult.success) {
+log('✅ ['+questName+'] Đã gửi activity, chờ Discord cập nhật.', 'success');
+// Đợi 3s rồi claim
+await new Promise(r => setTimeout(r, 3000));
+var progressAfter = await getQuestProgress(token, questId);
+if (progressAfter.success && progressAfter.progress && progressAfter.progress.completed) {
+log('🎯 ['+questName+'] Đã hoàn thành!', 'quest');
+var claimAfter = await claimQuest(token, questId);
+if (claimAfter.success) {
+stats.claimed++;
+updateStats();
+log('✅ ['+questName+'] Claim thành công!', 'success');
+} else {
+log('❌ ['+questName+'] Claim lỗi: '+claimAfter.error, 'error');
+}
+} else {
+log('⏳ ['+questName+'] Chưa hoàn thành, chờ lần sau.', 'warn');
+}
+} else {
+log('❌ ['+questName+'] Mô phỏng thất bại: '+simResult.error, 'error');
+}
+} else if (acceptResult.error === 'already_accepted') {
+log('ℹ️ ['+questName+'] Đã nhận từ trước.', 'warn');
+} else {
+log('❌ ['+questName+'] Nhận thất bại: '+acceptResult.error, 'error');
+}
+}
+
+return true;
+}
+
+async function mainLoop() {
+if (shouldStop || !isRunning) return;
+
+var token = tokenInput.value.trim();
+if (!token) {
+log('❌ Token trống!', 'error');
+stopProcess();
+return;
+}
+
+// Kiểm tra token
+var check = await checkToken(token);
+if (!check.valid) {
+log('❌ Token không hợp lệ: '+(check.error||'unknown'), 'error');
+stopProcess();
+return;
+}
+log('✅ Đăng nhập: '+check.username, 'success');
+
+// Xử lý quest
+await processQuests(token);
+
+count++;
+updateCount(count);
+
+var maxCount = parseInt(countInput.value) || 999;
+if (count >= maxCount) {
+log('🏁 Đã đạt số lần chạy: '+maxCount, 'success');
+stopProcess();
+return;
+}
+
+var delay = parseInt(delayInput.value) || 3000;
+timerId = setTimeout(function() { mainLoop(); }, delay);
+}
+
+function startProcess() {
+if (isRunning) return;
+var token = tokenInput.value.trim();
+if (!token) { log('❌ Vui lòng nhập token!', 'error'); return; }
+
+isRunning = true;
+shouldStop = false;
+count = 0;
+stats = { total: 0, accepted: 0, claimed: 0 };
+updateCount(0);
+updateStats();
+
+startBtn.classList.add('hidden');
+stopBtn.classList.remove('hidden');
+setStatus('running', 'Đang xử lý...');
+log('▶️ Bắt đầu auto quest...', 'info');
+mainLoop();
+}
+
+function stopProcess() {
+shouldStop = true;
+isRunning = false;
+if (timerId) { clearTimeout(timerId); timerId = null; }
+startBtn.classList.remove('hidden');
+stopBtn.classList.add('hidden');
+setStatus('idle', 'Idle');
+log('⏹️ Đã dừng. Tổng: '+count+' lần chạy.', 'warn');
+}
+
+// Events
+startBtn.addEventListener('click', startProcess);
+stopBtn.addEventListener('click', stopProcess);
+
+tokenInput.addEventListener('change', function() {
+var token = this.value.trim();
+if (token.length > 20) {
+checkToken(token).then(function(result) {
+if (result.valid) {
+log('✅ Token hợp lệ: '+result.username, 'success');
+} else {
+log('❌ Token không hợp lệ', 'error');
+}
+});
+}
+});
+
+log('🟢 AutoQuest Full Auto sẵn sàng!', 'info');
+log('💡 Nhập token và nhấn Bắt đầu.', 'info');
+log('⚡ Tự động nhận quest + mô phỏng hành động + claim.', 'info');
+
+})();
+</script>
+</body>
+</html>
